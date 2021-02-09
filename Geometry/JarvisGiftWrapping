@@ -1,0 +1,365 @@
+/*
+ * С1. Кубик мечты
+Ограничение времени	0.2 секунды
+Ограничение памяти	1Mb
+Ввод	стандартный ввод или input.txt
+Вывод	стандартный вывод или output.txt
+Арсений решил поиграть в настольную игру со своим другом Ильей.
+ Так как играть обычными кубиками им уже стало неинтересно,
+ Илья попросил по его чертежам сконструировать новую игральную кость.
+ Так как он ленивый, то просто накидал точек в пространстве и сказал,
+ что все они должны лежать в кубике его мечты.
+ У Арсения есть 3D-принтер, вот только материалы
+ для печати достаточно дорогие,
+ поэтому он хочет выполнить требования своего друга,
+ потратив как можно меньше пластика.
+
+Формат ввода
+Первая строка содержит число M — количество тестов.
+ В последующих строках описаны сами тесты.
+ Каждый тест начинается со строки, содержащей N (N ≤ 1000) — число точек.
+ Далее, в N строках даны по три числа — координаты точек. Все координаты целые,
+ не превосходят по модулю 500.
+
+Формат вывода
+Для каждого теста выведите следующее.
+ В первую строку выведите количество граней m.
+ Далее в последующие m строк выведите описание граней:
+ количество точек грани (=3) и номера точек в исходном множестве.
+ Точки нумеруются в том же порядке, в котором они даны во входном файле.
+ Точки в пределах грани должны быть отсортированы в порядке против часовой
+ стрелки относительно внешней нормали к грани.
+ Первая точка – точка с минимальным номером.
+ Порядок граней лексикографический.
+
+Пример
+Ввод	Вывод
+1
+4
+0 0 0
+1 0 0
+0 1 0
+0 0 1
+4
+3 0 1 3
+3 0 2 1
+3 0 3 2
+3 1 2 3
+Примечания
+Никакие 4 точки не лежат в одной полуплоскости.
+ Реализуйте мечту Ильи за O(N2) (или быстрее :)).
+ Кубик внутри должен быть заполнен.
+*/
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <stack>
+
+using std::cin;
+using std::cout;
+using std::vector;
+using std::abs;
+using std::sqrt;
+using std::sort;
+using std::stack;
+using std::swap;
+using std::min;
+
+const long double EPS = 1.e-19;
+const long double PI = 3.1415926535897932384626433832795028841971;
+
+
+struct Point {
+  Point(long double x, long double y, long double z) : x(x), y(y), z(z) {}
+
+  Point() = default;
+
+  long double x, y, z;
+};
+
+bool operator==(const Point &l, const Point &r) {
+  return abs(l.x - r.x) <= EPS && abs(l.y - r.y) <= EPS && abs(l.z - r.z) <= EPS;
+}
+
+bool operator!=(const Point &l, const Point &r) {
+  return !(l == r);
+}
+
+Point operator+(const Point &l, const Point &r) {
+  return Point(l.x + r.x, l.y + r.y, l.z + r.z);
+}
+
+Point operator-(const Point &l, const Point &r) {
+  return Point(l.x - r.x, l.y - r.y, l.y - r.y);
+}
+
+Point operator*(const long double k, const Point &p) {
+  return Point(k * p.x, k * p.y, k * p.z);
+}
+
+Point operator/(const Point &p, long double k) {
+  return Point(p.x / k, p.y / k, p.z / k);
+}
+
+long double Determinant2(long double a, long double b, long double c, long double d) {
+  return a * d - b * c;
+}
+
+struct Vector {
+  long double x, y, z;
+
+  Vector() = default;
+
+  Vector(Point A, Point B) : x(B.x - A.x), y(B.y - A.y), z(B.z - A.z) {}
+
+  Vector(long double x, long double y, long double z) : x(x), y(y), z(z) {}
+};
+
+Vector operator*(const long double k, const Vector &v) {
+  return Vector(k * v.x, k * v.y, k * v.z);
+}
+
+Vector operator/(const Vector &v, long double k) {
+  return Vector(v.x / k, v.y / k, v.z / k);
+}
+
+
+Vector operator*(const Vector &v, const Vector &u) {
+  return Vector(Determinant2(v.y, v.z, u.y, u.z),
+                -Determinant2(v.x, v.z, u.x, u.z),
+                Determinant2(v.x, v.y, u.x, u.y));
+}
+
+Vector operator+(const Vector &v1, const Vector &v2) {
+  return Vector(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
+}
+
+Point operator+(const Point &p, const Vector &v) {
+  return Point(p.x + v.x, p.y + v.y, p.z + v.z);
+}
+
+long double DotProduct(const Vector &v1, const Vector &v2) {
+  return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+}
+
+long double operator==(const Vector &v1, const Vector &v2) {
+  return abs(v1.x - v2.x) <= EPS && abs(v1.y - v2.y) <= EPS;
+}
+
+long double operator!=(const Vector &v1, const Vector &v2) {
+  return !(abs(v1.x - v2.x) <= EPS && abs(v1.y - v2.y) <= EPS);
+}
+
+class Face {
+public:
+  int m, a, b;
+
+  Face() = default;
+
+  Face(int m, int a, int b) : m(m), a(a), b(b) {}
+};
+
+
+bool operator==(const Face &p, const Face &q) {
+  return p.m == q.m && p.a == q.a && p.b == q.b;
+}
+
+struct Plane {
+  Plane() = default;
+
+  Plane(Point m, Vector v, Vector u) : m(m), a(v), b(u),
+                                       normal((a * b) / DotProduct(a * b, a * b)) {
+    A = normal.x;
+    B = normal.y;
+    C = normal.z;
+    D = A * (-m.x) + B * (-m.y) + C * (-m.z);
+  }
+
+  Plane(Point m, Point a, Point b) : Plane(m, Vector(m, a), Vector(m, b)) {}
+
+
+  Point m;
+  Vector a, b, normal;
+  long double A, B, C, D;
+};
+
+
+void ReadPol(vector <Point> &pol, int size) {
+  int x, y, z;
+  for (int i = 0; i < size; ++i) {
+    cin >> x >> y >> z;
+    pol.emplace_back(Point(x, y, z));
+  }
+}
+
+int MinZ(const vector <Point> &pol) {
+  int min_z = 0;
+  for (int i = 0; i < pol.size(); ++i) {
+    if (pol[min_z].z > pol[i].z ||
+        pol[min_z].z == pol[i].z && pol[min_z].x > pol[i].x ||
+        pol[min_z].z == pol[i].z && pol[min_z].x == pol[i].x && pol[min_z].y > pol[i].y) {
+      min_z = i;
+    }
+  }
+  return min_z;
+}
+
+long double Angle(const Vector &a, const Vector &b) {
+  return acos(DotProduct(a, b) / (sqrt(DotProduct(a, a)) * sqrt(DotProduct(b, b))));
+}
+
+//у всех плоскостей вектор нормали должен быть направлен из многограннка
+//предпологается, что m, m, a у плоскостей правая ортонорм тройка
+long double Angle(const Plane &alpha, const Plane &beta) {
+  long double angle = Angle(alpha.normal, beta.normal);
+  return abs(angle - PI) <= EPS ? 0 : angle;
+}
+
+//обёртка будет построена на точках, являются концами векторов, на которых построена платформа
+int DotsWrap(const vector <Point> &pol, const Plane &platform, const bool min_angle) {
+  int answer;
+  long double contact_angle = 0;
+  if (min_angle) {
+    contact_angle = PI;
+  }
+  for (int p = 0; p < pol.size(); ++p) {
+    if (platform.m != pol[p] &&
+        platform.m + platform.a != pol[p] &&
+        platform.m + platform.b != pol[p]) {
+      Plane page(pol[p], platform.m + platform.a, platform.m + platform.b);
+      long double angle = Angle(platform, page);
+      if (min_angle) {
+        if (angle < contact_angle) {
+          contact_angle = angle;
+          answer = p;
+        }
+      } else {
+        if (angle > contact_angle) {
+          contact_angle = angle;
+          answer = p;
+        }
+      }
+    }
+  }
+  return answer;
+}
+
+void Brush(vector <vector<bool>> &is_used, int a, int b, int c) {
+  is_used[a][b] = true;
+  is_used[b][a] = true;
+  is_used[a][c] = true;
+  is_used[c][a] = true;
+  is_used[b][c] = true;
+  is_used[c][b] = true;
+}
+
+void AddFace(stack <Face> &faces, vector <vector<bool>> &is_used, int m, int a, int b) {
+  if (!is_used[m][a]) {
+    faces.emplace(b, m, a);
+  }
+  if (!is_used[b][m]) {
+    faces.emplace(a, b, m);
+  }
+  Brush(is_used, a, b, m);
+}
+
+vector <Face> JarvisMarch(vector <Point> &pol) {
+  //поиск первой точки P для инициализации
+  int P = MinZ(pol);
+  Point Px = Point(pol[P].x + 300, pol[P].y + 210, pol[P].z);
+  Point Py = Point(pol[P].x + 210, pol[P].y + 300, pol[P].z);
+  //нормаль направлена во внешнюю сторону
+  Plane platform(Px, pol[P], Py);
+  //поиск второй точки Q
+  int Q = DotsWrap(pol, platform, true);
+  platform = Plane(Py, pol[Q], pol[P]);
+  if (platform.normal.z > 0) {
+    swap(Q, P);
+    platform = Plane(Py, pol[Q], pol[P]);
+  }
+
+  //поиск третей точки R
+  int R = DotsWrap(pol, platform, true);
+  platform = Plane(pol[R], pol[Q], pol[P]);
+  if (platform.normal.z > 0) {
+    swap(Q, P);
+    platform = Plane(pol[R], pol[Q], pol[P]);
+  }
+  //кладём в стек как бы рёбро, но чтобы было удобнее,
+  // запоминаем и точку соответствующую ребру
+  //любая грань будет положена в стек не более 3 раз, но с разной ориентацией
+  stack <Face> faces;
+  vector <vector<bool>> is_used(pol.size());
+  for (int i = 0; i < pol.size(); ++i) {
+    is_used[i].assign(pol.size(), false);
+  }
+  //циклический сдвиг по ортнонорм левой тройке
+  faces.emplace(R, Q, P);
+  faces.emplace(P, R, Q);
+  faces.emplace(Q, P, R);
+  vector <Face> result;
+  Face face{};
+  while (!faces.empty()) {
+    face = faces.top();
+    faces.pop();
+    P = DotsWrap(pol, Plane(pol[face.m], pol[face.a], pol[face.b]), false);
+    result.emplace_back(P, face.b, face.a);
+    AddFace(faces, is_used, P, face.b, face.a);
+    Brush(is_used, P, face.b, face.a);
+  }
+  return result;
+}
+
+bool Comp(const Face &p, const Face &q) {
+  return p.m < q.m ||
+         p.m == q.m && p.a < q.a ||
+         p.m == q.m && p.a == q.a && p.b < q.b;
+}
+
+void CyclicShift(Face &face) {
+  swap(face.m, face.a);
+  swap(face.m, face.b);
+}
+
+void PrintAnswer(vector <Face> &pol) {
+  int min_ind;
+  for (auto &face : pol) {
+    min_ind = min(min(face.m, face.a), face.b);
+    while (face.m != min_ind) {
+      CyclicShift(face);
+    }
+  }
+  sort(pol.begin(), pol.end(), &Comp);
+
+  Face previous = pol[pol.size() - 1];
+  int i = 0;
+  while (i < pol.size()) {
+    if (previous == pol[i]) {
+      pol.erase(pol.begin() + i);
+    } else {
+      previous = pol[i++];
+    }
+  }
+
+  cout << pol.size() << '\n';
+  for (const auto &p : pol) {
+    cout << '3' << ' ' << p.m << ' ' << p.a << ' ' << p.b << '\n';
+    previous = p;
+  }
+}
+
+//нормировать вектора
+int main() {
+  size_t tests;
+  cin >> tests;
+  int size;
+  for (size_t i = 0; i < tests; ++i) {
+    cin >> size;
+    vector <Point> pol;
+    ReadPol(pol, size);
+    vector <Face> wrap = JarvisMarch(pol);
+    PrintAnswer(wrap);
+  }
+}

@@ -1,0 +1,155 @@
+/*
+ * A1. Тоннель
+Ограничение времени	1 секунда
+Ограничение памяти	64Mb
+Ввод	стандартный ввод
+Вывод	стандартный вывод
+Арсений уснул.
+ И приснилась ему планета Ка-Пэкс,
+ на которой протекают две реки.
+ Эти реки достаточно необычны для землян:
+ они текут строго от одной точки до другой точки
+ напрямую в пространстве (так как в сне Арсения планета вовсе не круглая).
+ Арсений решил, что он хочет прорыть тоннель между реками.
+ Так как он ленивый, то и копать много он не хочет.
+ Помогите Арсению найти, сколько-таки ему придется прорыть.
+
+Формат ввода
+В четырех строках задаются целые координаты начала и конца рек.
+ Координаты по модулю не превосходят 1000.
+
+Формат вывода
+Выведите искомую величину c точностью не менее 6 знаков после десятичной точки.
+
+Пример
+Ввод	Вывод
+0 0 0
+1 1 1
+0 0 1
+0 1 0
+
+0.40824829
+ */
+
+#include <iostream>
+#include <algorithm>
+#include <limits>
+#include <iomanip>
+#include <cmath>
+
+using std::cin;
+using std::cout;
+using std::pair;
+using std::min;
+using std::max;
+using std::sqrt;
+
+const long double EPS = 1.e-6;
+
+struct Point {
+    Point() {}
+
+    Point(long double x, long double y, long double z) {
+        this->x = x;
+        this->y = y;
+        this->z = z;
+    }
+
+    long double x, y, z;
+};
+
+Point operator+(const Point &l, const Point &r) {
+    return Point(l.x + r.x, l.y + r.y, l.z + r.z);
+}
+
+Point operator-(const Point &l, const Point &r) {
+    return Point(l.x - r.x, l.y - r.y, l.z - r.z);
+}
+
+Point operator*(const long double k, const Point &p) {
+    return Point(k * p.x, k * p.y, k * p.z);
+}
+
+Point operator/(const Point &p, const long double k) {
+    return Point(p.x / k, p.y / k, p.z / k);
+}
+
+long double ScalarProduct(const Point &l, const Point &r) {
+    return l.x * r.x + l.y * r.y + l.z * r.z;
+}
+
+long double Len(const Point &l, const Point &r) {
+    return sqrt(
+            (l.x - r.x) * (l.x - r.x) +
+            (l.y - r.y) * (l.y - r.y) +
+            (l.z - r.z) * (l.z - r.z));
+}
+
+
+long double LenPointToSegment(Point p, Point q, Point r) {
+    //перенос q в начало координат
+    p = p - q;
+    r = r - q;
+    //проецируем p' на прямую 0r' получаем с,
+    //находим коэффицент сдвига r' -> c
+    long double c = ScalarProduct(p, r) / ScalarProduct(r, r);
+    //зажимаем точку между 0r;
+    if (c < 0) {
+        return Len(p, 0 * r);
+    }
+    if (c > 1) {
+        return Len(p, r);
+    }
+    return Len(p, c * r);
+}
+
+Point Trisect(Point p, Point q) {
+    return (2 * p + q) / 3.0;
+}
+
+Point Round(Point a) {
+    return Point(round(a.x), round(a.y), round(a.z));
+}
+
+long double MinLenBetweenSegments(Point p, Point r, Point s, Point u,
+                                  int iterations = 50) {
+    long double distance = std::numeric_limits<long double>::max();
+    if (Len(s, u) < EPS) {
+        return LenPointToSegment(s, p, r);
+    }
+        for (int i = 0; i < iterations; ++i) {
+            // [p...a...b...r]
+            Point a = Trisect(p, r);
+            long double len_a_to_su = LenPointToSegment(a, s, u);
+
+            Point b = Trisect(r, p);
+            long double len_b_to_su = LenPointToSegment(b, s, u);
+            //приближение к минимуму
+            if (len_a_to_su < len_b_to_su) {/////
+                r = b;
+                distance = min(len_a_to_su, distance);
+            } else {
+                p = a;
+                distance = min(len_b_to_su, distance);
+            }
+        }
+    return distance;
+}
+
+int main() {
+    Point p;
+    cin >> p.x >> p.y >> p.z;
+    Point r;
+    cin >> r.x >> r.y >> r.z;
+    Point s;
+    cin >> s.x >> s.y >> s.z;
+    Point u;
+    cin >> u.x >> u.y >> u.z;
+    cout << std::fixed << std::setprecision(100);
+    long double answer = MinLenBetweenSegments(p, r, u, s);
+    if (std::abs(answer - roundl(answer)) < EPS) {
+        cout << roundl(answer);
+    } else {
+        cout << answer;
+    }
+}

@@ -1,0 +1,189 @@
+/*
+ * D1. Возможно глупая ссора
+Ограничение времени	1 секунда
+Ограничение памяти	64Mb
+Ввод	стандартный ввод или input.txt
+Вывод	стандартный вывод или output.txt
+Арсений опять уснул. И снова на планете Ка-Пэкс без него никак —
+ два фермера поссорились из-за того,
+ что их территории могут перекрываться.
+ Естественно, как самого рассудительного,
+ Арсения позвали урегулировать конфликт.
+ Для начала он решил узнать, насколько серьезен конфликт.
+ Для этого он решил узнать, пересекаются ли фермы вообще.
+ Помогите Арсению это понять, если известно, что каждая ферма
+ представляет собой выпуклый многоугольник.
+
+Формат ввода
+Первая строка содержит число N точек первого многоугольника.
+ Затем идут N строк с координатами точек первого многоугольника
+ по часовой стрелке (координаты – действительные числа).
+ Второй прямоугольник задается аналогично. N, M ≤ 80000.
+
+Формат вывода
+Выведите “YES”, если фермы пересекаются, и “NO”, если нет (без кавычек).
+
+Пример
+Ввод	Вывод
+5
+0 0
+0 1
+1 2
+2 1
+1 0
+3
+3 0
+2 0
+1 1
+YES
+
+Примечания
+Реализуйте алгоритм за O(N+M).
+*/
+
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+
+using std::cin;
+using std::cout;
+using std::vector;
+using std::abs;
+using std::sqrt;
+using std::sort;
+
+const long double EPS = 1.e-6;
+const long double PI = 3.1415926535897932384626433832795028841971;
+
+
+struct Point {
+  Point(long double x, long double y) {
+    this->x = x;
+    this->y = y;
+  }
+
+  long double x, y;
+};
+
+bool operator==(const Point &l, const Point &r) {
+  return abs(l.x - r.x) < EPS && std::abs(l.y - r.y) < 0;
+}
+
+bool operator!=(const Point &l, const Point &r) {
+  return !(l == r);
+}
+
+bool Comparator(const Point &l, const Point &r) {
+  return l.y < r.y || l.y == r.y && l.x > r.x;
+}
+
+Point operator+(const Point &l, const Point &r) {
+  return Point(l.x + r.x, l.y + r.y);
+}
+
+Point operator-(const Point &l, const Point &r) {
+  return Point(l.x - r.x, l.y - r.y);
+}
+
+Point operator*(const long double k, const Point &p) {
+  return Point(k * p.x, k * p.y);
+}
+
+bool is_left_rotate(Point a, Point b, Point c) {
+  return a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y) > 0;
+}
+
+bool is_right_rotate(Point a, Point b, Point c) {
+  return a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y) < 0;
+}
+
+long double Len(const Point &l, const Point &r) {
+  return sqrt((l.x - r.x) * (l.x - r.x) + (l.y - r.y) * (l.y - r.y));
+}
+
+void ReflectPolygon(vector <Point> &polygon) {
+  for (auto &point : polygon) {
+    point = -1 * point;
+  }
+}
+
+long double Angle(const Point &point) {
+  const Point left(-1, 0);
+  long double angle = acos(-point.x / (sqrt(point.x * point.x + point.y * point.y)));
+  return is_left_rotate(Point(0, 0), left, point) ? 2 * PI - angle : angle;
+}
+
+void ReadPolygon(vector <Point> &polygon) {
+  uint64_t count;
+  cin >> count;
+  long double x, y;
+  for (int i = 0; i < count; ++i) {
+    cin >> x >> y;
+    polygon.emplace_back(x, y);
+  }
+}
+
+vector <Point> MinkowskiAddition(vector <Point> &a, vector <Point> &b) {
+  vector <Point> c;
+  uint64_t min_a = 0;
+  for (int i = 0; i < a.size(); ++i) {
+    if (Comparator(a[i], a[min_a])) {
+      min_a = i;
+    }
+  }
+  uint64_t min_b = 0;
+  for (int i = 0; i < b.size(); ++i) {
+    if (Comparator(b[i], b[min_b])) {
+      min_b = i;
+    }
+  }
+  uint64_t i = min_a, j = min_b;
+  Point go = a[i] + b[j];
+  while (i < a.size() + min_a || j < b.size() + min_b) {
+    c.push_back(go);
+    if (i < a.size() + min_a && j < b.size() + min_b) {
+      if (Angle(a[(i + 1) % a.size()] - a[i % a.size()]) <
+          Angle(b[(j + 1) % b.size()] - b[j % b.size()])) {
+        go = go + a[(i + 1) % a.size()] - a[i % a.size()];
+        i++;
+      } else {
+        go = go + b[(j + 1) % b.size()] - b[j % b.size()];
+        j++;
+      }
+    } else {
+      if (i != a.size() + min_a) {
+        go = go + a[(i + 1) % a.size()] - a[i % a.size()];
+        i++;
+      } else {
+        go = go + b[(j + 1) % b.size()] - b[j % b.size()];
+        j++;
+      }
+    }
+  }
+  return c;
+}
+
+bool ContainsPoint(vector <Point> polygon, Point point) {
+  for (uint64_t i = 0; i < polygon.size(); ++i) {
+    if (is_left_rotate(polygon[i], polygon[(i + 1) % polygon.size()], point)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+int main() {
+  vector <Point> a;
+  ReadPolygon(a);
+  vector <Point> b;
+  ReadPolygon(b);
+  ReflectPolygon(b);
+
+  if (ContainsPoint(MinkowskiAddition(a, b), Point(0, 0))) {
+    cout << "YES";
+  } else {
+    cout << "NO";
+  }
+}

@@ -1,0 +1,135 @@
+/*
+ * B. Заборчик для кроликов
+Ограничение времени	2 секунды
+Ограничение памяти	256Mb
+Ввод	стандартный ввод или input.txt
+Вывод	стандартный вывод или output.txt
+Арсений продолжает спать.
+ Теперь ему снится кроличья ферма на планете Ка-Пэкс.
+ Правда, ферма у него так себе — одни кроличьи норы в пустом поле.
+ Чтобы её хоть как-то облагородить, Арсений решил поставить забор так,
+ чтобы все норки оказались внутри огражденной территории,
+ а досок он потратил как можно меньше.
+ Помогите Арсению найти длину забора,
+ чтобы он мог уже заказывать стройматериалы!
+
+Формат ввода
+В первой строке вводится число N (3 ≤ N ≤ 105).
+ Следующие N строк содержат пары целых чисел
+ x и y (-109 ≤ x, y ≤ 109) — координаты кроличьих нор.
+
+Формат вывода
+Одно вещественное число — длину забора — с максимально возможной точностью.
+
+Пример
+Ввод	Вывод
+5
+0 0
+2 0
+0 2
+1 1
+2 2
+8
+
+Примечания
+Будьте аккуратны! Точки произвольны.
+ Бывают совпадающие, бывают лежащие на одной прямой в большом количестве.
+ */
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+
+using std::cin;
+using std::cout;
+using std::vector;
+using std::abs;
+using std::sqrt;
+using std::sort;
+
+const long double EPS = 1.e-6;
+
+struct Point {
+  Point(int64_t x, int64_t y) {
+    this->x = x;
+    this->y = y;
+  }
+
+  int64_t x, y;
+};
+
+bool operator==(const Point &l, const Point &r) {
+  return abs(l.x - r.x) < EPS && std::abs(l.y - r.y) < 0;
+}
+
+bool operator!=(const Point &l, const Point &r) {
+  return !(l == r);
+}
+
+bool Comparator(const Point &l, const Point &r) {
+  return l.x < r.x || l.x == r.x && l.y < r.y;
+}
+
+bool is_left_rotate(Point a, Point b, Point c) {
+  return a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y) < 0;
+}
+
+bool is_right_rotate(Point a, Point b, Point c) {
+  return a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y) > 0;
+}
+
+long double Len(const Point &l, const Point &r) {
+  return sqrt((l.x - r.x) * (l.x - r.x) + (l.y - r.y) * (l.y - r.y));
+}
+
+long double LenGrahamScan(vector <Point> &points) {
+  sort(points.begin(), points.end(), &Comparator); //сортировка по x, O(nlogn)
+  int n = points.size();
+  Point left = points[0];
+  Point right = points[n - 1];
+  vector <Point> up, down;
+  up.push_back(left); //верхняя область
+  down.push_back(left); //нижняя область
+
+  for (int i = 1; i < n; ++i) {
+    if (i == n - 1 || is_left_rotate(left, points[i], right)) { //точка оказалась выше
+      while (up.size() >= 2 && !is_left_rotate(up[up.size() - 2], up[up.size() - 1], points[i]) &&
+             up[i] != up[i - 1]) {
+        up.pop_back();  //если завернули направо, прошли прямо либо остались на той же точке
+        //то выкидываем точки пока не станет ровно левый поворот
+      }
+      up.push_back(points[i]); //все предыдущие повороты точно левые, рассматриваем след вершину
+    }
+    if (i == n - 1 || is_right_rotate(left, points[i], right)) { //точка оказалась ниже
+      while (down.size() >= 2 && !is_right_rotate(down[down.size() - 2], down[down.size() - 1], points[i]) &&
+             down[i] != down[i - 1]) {
+        down.pop_back();
+      }
+      down.push_back(points[i]);
+    }
+  }
+  //не выкининуть, не добавить точки невомзожно более, чем n - 2 раз, асимптотика O(n)
+  long double total = 0;
+  for (uint64_t i = 1; i < up.size(); ++i) {
+    total += Len(up[i - 1], up[i]);
+  }
+  for (uint64_t i = 1; i < down.size(); ++i) {
+    total += Len(down[i - 1], down[i]);
+  }
+  return total;
+}
+
+int main() {
+  uint64_t count;
+  cin >> count;
+  vector <Point> holes;
+  int64_t x, y;
+  for (int i = 0; i < count; ++i) {
+    cin >> x >> y;
+    holes.emplace_back(x, y);
+  }
+  long double answer = LenGrahamScan(holes);
+  cout << std::setprecision(10) << answer;
+}
