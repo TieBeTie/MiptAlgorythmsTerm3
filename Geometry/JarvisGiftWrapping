@@ -211,7 +211,7 @@ long double Angle(const Vector &a, const Vector &b) {
 }
 
 //у всех плоскостей вектор нормали должен быть направлен из многограннка
-//предпологается, что m, m, a у плоскостей правая ортонорм тройка
+//предполагается, что m, m, a у плоскостей правая ортонорм тройка
 long double Angle(const Plane &alpha, const Plane &beta) {
   long double angle = Angle(alpha.normal, beta.normal);
   return abs(angle - PI) <= EPS ? 0 : angle;
