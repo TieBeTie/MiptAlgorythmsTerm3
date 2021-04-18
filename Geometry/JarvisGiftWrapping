@@ -217,7 +217,7 @@ long double Angle(const Plane &alpha, const Plane &beta) {
   return abs(angle - PI) <= EPS ? 0 : angle;
 }
 
-//обёртка будет построена на точках, являются концами векторов, на которых построена платформа
+//обёртка будет построена на точках, они являются концами векторов, на которых построена платформа
 int DotsWrap(const vector <Point> &pol, const Plane &platform, const bool min_angle) {
   int answer;
   long double contact_angle = 0;
